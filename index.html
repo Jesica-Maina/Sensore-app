@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sensore - Graphene Trace</title>
+    <style>
+        body { font-family: Arial; max-width: 800px; margin: 50px auto; }
+        input, button { padding: 10px; margin: 5px; font-size: 16px; }
+        canvas { border: 1px solid #ccc; margin: 20px 0; }
+        .hidden { display: none; }
+        #dataInfo { background: #f5f5f5; padding: 15px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🛏️ Sensore - Pressure Ulcer Prevention</h1>
+    
+    <!-- Login -->
+    <div id="login">
+        <input id="userId" placeholder="User ID " required />
+        <input id="password" type="password" placeholder="Password" required />
+        <button onclick="login()">Login</button>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboard" class="hidden">
+        <div id="userInfo"></div>
+        
+        <input id="patientId" placeholder="Patient ID to view data" />
+        <button onclick="loadData()">Load Pressure Data</button>
+        
+        <canvas id="heatmap" width="320" height="320"></canvas>
+        <div id="dataInfo"></div>
+        
+        <h3>Sample Pressure Readings:</h3>
+        <div id="dataTable"></div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        const canvas = document.getElementById('heatmap');
+        const ctx = canvas.getContext('2d');
+
+        async function login() {
+            const userId = document.getElementById('userId').value;
+            const password = document.getElementById('password').value;
+            
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({userId, password})
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                currentUser = data.user;
+                document.getElementById('login').classList.add('hidden');
+                document.getElementById('dashboard').classList.remove('hidden');
+                document.getElementById('userInfo').innerHTML = 
+                    `<h2>Welcome ${currentUser.name} (${currentUser.role})</h2>`;
+                document.getElementById('patientId').placeholder = 
+                    currentUser.role === 'patient' ? currentUser.user_id : 'patient123';
+            } else {
+                alert('Wrong login!');
+            }
+        }
+
+        async function loadData() {
+            const patientId = document.getElementById('patientId').value || currentUser.user_id;
+            const res = await fetch(`/api/data/${patientId}?sessionUser=${currentUser.userId}`);
+            const data = await res.json();
+            
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+            
+            renderHeatmap(data);
+            showDataTable(data);
+            document.getElementById('dataInfo').innerHTML = 
+                `✅ Loaded ${data.length} pressure readings for ${patientId}`;
+        }
+
+        function renderHeatmap(data) {
+            ctx.clearRect(0, 0, 320, 320);
+            const latest = data[0];
+            
+            for(let row=1; row<=32; row++) {
+                for(let col=1; col<=32; col++) {
+                    const pressure = latest[`pressure_${row}_${col}`] || 1;
+                    const intensity = pressure / 255;
+                    ctx.fillStyle = `hsl(${240*(1-intensity)}, 100%, ${50+intensity*45}%)`;
+                    ctx.fillRect((col-1)*10, (row-1)*10, 10, 10);
+                }
+            }
+        }
+
+        function showDataTable(data) {
+            document.getElementById('dataTable').innerHTML = 
+                data.slice(0,5).map(d => 
+                    `<div>${d.timestamp}: (${d.row},${d.col}) = ${d.pressure}</div>`
+                ).join('');
+        }
+
+        // Auto-load on login
+        setTimeout(() => {
+            if (currentUser) loadData();
+        }, 500);
+    </script>
+</body>
+</html>
