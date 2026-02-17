@@ -25,8 +25,8 @@ db.serialize(() => {
     )`);
     
     // Add users
-    db.run(`INSERT OR IGNORE INTO users VALUES ('patient123','John Doe','patient','pass123')`);
-    db.run(`INSERT OR IGNORE INTO users VALUES ('clinician456','Dr. Smith','clinician','pass456')`);
+    db.run(`INSERT OR IGNORE INTO users VALUES ('patient123','Brian Kibet','patient','pass123')`);
+    db.run(`INSERT OR IGNORE INTO users VALUES ('clinician456','Dr. Karen','clinician','pass456')`);
     db.run(`INSERT OR IGNORE INTO users VALUES ('admin789','Admin','admin','admin')`);
     
     // ADD 20 DEMO PRESSURE READINGS!
@@ -85,3 +85,4 @@ app.get('/api/data/:userId', (req, res) => {
 });
 
 app.listen(3000, () => console.log('🚀 http://localhost:3000'));
+
